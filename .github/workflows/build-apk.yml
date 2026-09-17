@@ -22,10 +22,22 @@ jobs:
 
       - name: Ekstrak project V3
         run: |
-          mkdir project
+          mkdir -p project
           unzip -q CATATAN_TOKO_AKMAL_V3_TABLET.zip -d project
           echo "Isi project:"
-          find project -maxdepth 2 -type f | head -50
+          find project -maxdepth 3 -type f | head -80
+
+      - name: Perbaiki target Java menjadi 17
+        run: |
+          find project -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | while IFS= read -r -d '' file; do
+            sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$file"
+            sed -i 's/JavaVersion.VERSION_8/JavaVersion.VERSION_17/g' "$file"
+            sed -i 's/jvmTarget[[:space:]]*=[[:space:]]*"1.8"/jvmTarget = "17"/g' "$file"
+            sed -i "s/jvmTarget[[:space:]]*=[[:space:]]*'1.8'/jvmTarget = '17'/g" "$file"
+          done
+
+          echo "Konfigurasi Java/Kotlin setelah diperbaiki:"
+          grep -R -n -E "VERSION_1_8|VERSION_17|jvmTarget" project --include="*.gradle" --include="*.gradle.kts" || true
 
       - name: Siapkan Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -33,7 +45,7 @@ jobs:
           gradle-version: '8.13'
 
       - name: Build APK
-        working-directory: project
+        working-directory: project/CATATAN_TOKO_AKMAL_V3_TABLET
         run: |
           gradle :app:assembleDebug --no-daemon
 
@@ -41,5 +53,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CATATAN-TOKO-AKMAL-V3-APK
-          path: project/app/build/outputs/apk/debug/app-debug.apk
+          path: project/CATATAN_TOKO_AKMAL_V3_TABLET/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
